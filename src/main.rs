@@ -52,7 +52,7 @@ fn main() {
                 .long("token")
                 .value_name("TOKEN")
                 .help("Your Slack bot token")
-                .required(true),
+                .required(false),
         )
         .arg(
             Arg::new("channel")
@@ -68,7 +68,7 @@ fn main() {
                 .long("file")
                 .value_name("FILE")
                 .help("Path to the file to upload")
-                .required(true),
+                .required(false),
         )
         .arg(
             Arg::new("message")
