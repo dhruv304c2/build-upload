@@ -2,6 +2,7 @@ use clap::{Arg, Command};
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 use std::fs;
+use std::env;
 
 fn upload_file_to_slack(
     token: &str,
@@ -78,12 +79,20 @@ fn main() {
         )
         .get_matches();
 
-    let token = matches.get_one::<String>("token").unwrap();
+    let token = matches.get_one::<String>("token")
+        .map(|s| s.clone())
+        .or_else(|| env::var("SLACK_TOKEN").ok())
+        .expect("Slack token is required, provide is via -t option or the SLACK_TOKEN environment variable.");
+
     let channel = matches.get_one::<String>("channel").unwrap();
-    let file = matches.get_one::<String>("file").unwrap();
+    let file = matches.get_one::<String>("file")
+        .map(|s| s.clone())
+        .or_else(|| env::var("BUILD_PATH").ok())
+        .expect("build path is required, provide is via -f option or the BUILD_PATH environment variable.");
+
     let message = matches.get_one::<String>("message");
 
-    if let Err(err) = upload_file_to_slack(token, channel, file, message.map(|s| s.as_str())) {
+    if let Err(err) = upload_file_to_slack(&token, channel, &file, message.map(|s| s.as_str())) {
         eprintln!("Error: {}", err);
     }
 }
