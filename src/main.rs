@@ -10,7 +10,7 @@ fn upload_file_to_slack(
     file_path: &str,
     message: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new();
+    let client = Client::builder().timeout(None).build()?;
     let file_content = fs::read(file_path)?;
     let file_name = file_path.split('/').last().unwrap_or("file");
 
