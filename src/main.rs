@@ -97,11 +97,8 @@ fn upload_file_to_slack(
 
 fn get_last_git_commit(repo_path: &str) -> Result<String, Box<dyn Error>> {
     let repo = Repository::open(repo_path)?;
-    
     let head = repo.head()?;
-    
     let head_commit = head.peel_to_commit()?;
-    
     let commit_id = head_commit.id();
     let author = head_commit.author();
     let message = head_commit.message().unwrap_or("No commit message");
