@@ -16,7 +16,7 @@ fn upload_file_to_slack(
     token: &str,
     channel_id: &str,
     file_path: &str,
-    message: Option<&str>,
+    message: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
     let client = Client::builder().timeout(None).build()?;
     let file_name = Path::new(file_path)
@@ -70,7 +70,7 @@ fn upload_file_to_slack(
         .json(&serde_json::json!({
             "files": [{"id": file_id, "title": file_name}],
             "channel_id": channel_id,
-            "initial_comment": format!("<!everyone>{}\n*Last commit*: \n```{}```",message.unwrap_or("Uploaded via CLI"), get_last_git_commit(".").unwrap_or("".to_string())),
+            "initial_comment": format!("{}\n*Last commit*: \n{}",message.unwrap_or("Uploaded via CLI".to_string()), get_last_git_commit(".").unwrap_or("".to_string())),
         }))
         .send()?
         .json()?;
@@ -104,7 +104,7 @@ fn get_last_git_commit(repo_path: &str) -> Result<String, Box<dyn Error>> {
     let message = head_commit.message().unwrap_or("No commit message");
 
     Ok(format!(
-        "Commit ID: {}\nAuthor: {} <{}>\nMessage: {}",
+        "🔑 *Commit ID*: {}\n👤 *Author*: {} <{}>\n✉️ *Message*: {}",
         commit_id,
         author.name().unwrap_or("Unknown"),
         author.email().unwrap_or("Unknown"),
@@ -155,15 +155,22 @@ fn main() {
         .or_else(|| env::var("SLACK_TOKEN").ok())
         .expect("Slack token is required, provide is via -t option or the SLACK_TOKEN environment variable.");
 
-    let channel = matches.get_one::<String>("channel").unwrap();
+    let channel = matches.get_one::<String>("channel")
+        .map(|s| s.clone())
+        .or_else(|| env::var("CHANNEL_ID").ok())
+        .expect("Slack token is required, provide is via -c option or the CHANNEL_ID environment variable.");
+
     let file = matches.get_one::<String>("file")
         .map(|s| s.clone())
-        .or_else(|| env::var("BUILD_PATH").ok())
-        .expect("build path is required, provide is via -f option or the BUILD_PATH environment variable.");
+        .or_else(|| env::var("BUILD_APPLICATION_PATH").ok())
+        .expect("build path is required, provide is via -f option or the BUILD_APPLICATION_PATH environment variable.");
 
-    let message = matches.get_one::<String>("message");
+    let message = matches.get_one::<String>("message")
+        .map(|s| s.clone())
+        .or_else(|| env::var("MESSAGE").ok())
+        .or_else(|| Some("".to_string()));
 
-    if let Err(err) = upload_file_to_slack(&token, channel, &file, message.map(|s| s.as_str())) {
+    if let Err(err) = upload_file_to_slack(&token, &channel, &file, message) {
         eprintln!("Error: {}", err);
     }
 }
