@@ -26,14 +26,14 @@ fn upload_file_to_slack(
     let form = reqwest::blocking::multipart::Form::new()
         .text("channels", channel.to_string())
         .text("initial_comment", message.unwrap_or("Uploaded via CLI").to_string())
-        .text("filename", file_name.to_string())
+        .text("title", file_name.to_string())
         .part(
             "file",
             reqwest::blocking::multipart::Part::bytes(file_content).file_name(file_name.to_string()),
         );
 
     let response = client
-        .post("https://slack.com/api/files.upload")
+        .post("https://slack.com/api/conversations.files.upload")
         .headers(headers)
         .multipart(form)
         .send()?;
