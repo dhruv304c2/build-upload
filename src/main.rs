@@ -42,7 +42,7 @@ fn upload_file_to_slack(
     if response.status().is_success() {
         let text = format!("{}", response.text()?);
         let parsed : slack_response::SlackResponse = from_str(&text).expect("failed to parse respons JSON");
-        
+
         if parsed.ok {
             println!("File uploaded successfully!");
         } else{
