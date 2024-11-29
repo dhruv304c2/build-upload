@@ -47,7 +47,7 @@ fn upload_file_to_slack(
             println!("File uploaded successfully!");
         } else{
             let parsed_error : slack_response::FailedSlackResponse = from_str(&text).expect("failed to parse response JSON"); 
-            eprintln!("Failed to uploading file: {}", parsed_error.error);
+            eprintln!("Failed to upload file: {}", parsed_error.error);
         }
     } else {
         eprintln!("Error uploading file: {}", response.text()?);
