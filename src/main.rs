@@ -1,8 +1,14 @@
 use clap::{Arg, Command};
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
+use structs::slack_response;
 use std::fs;
 use std::env;
+use serde_json::from_str;
+
+mod structs{
+    pub mod slack_response;
+}
 
 fn upload_file_to_slack(
     token: &str,
@@ -32,8 +38,17 @@ fn upload_file_to_slack(
         .multipart(form)
         .send()?;
 
+
     if response.status().is_success() {
-        println!("File uploaded successfully!");
+        let text = format!("{}", response.text()?);
+        let parsed : slack_response::SlackResponse = from_str(&text).expect("failed to parse respons JSON");
+        
+        if parsed.ok {
+            println!("File uploaded successfully!");
+        } else{
+            let parsed_error : slack_response::FailedSlackResponse = from_str(&text).expect("failed to parse response JSON"); 
+            eprintln!("Failed to uploading file: {}", parsed_error.error);
+        }
     } else {
         eprintln!("Error uploading file: {}", response.text()?);
     }
