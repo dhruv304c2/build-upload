@@ -162,7 +162,7 @@ fn main() {
 
     let file = matches.get_one::<String>("file")
         .map(|s| s.clone())
-        .or_else(|| env::var("BUILD_APPLICATION_PATH").ok())
+        .or_else(|| env::var("CCD_BINARY_PATH").ok())
         .expect("build path is required, provide is via -f option or the BUILD_APPLICATION_PATH environment variable.");
 
     let message = matches.get_one::<String>("message")
