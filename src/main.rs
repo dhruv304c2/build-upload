@@ -123,7 +123,6 @@ fn main() {
                 .long("token")
                 .value_name("TOKEN")
                 .help("Your Slack bot token")
-                .required(false),
         )
         .arg(
             Arg::new("channel")
@@ -131,7 +130,6 @@ fn main() {
                 .long("channel")
                 .value_name("CHANNEL")
                 .help("The Slack channel ID")
-                .required(true),
         )
         .arg(
             Arg::new("file")
@@ -139,7 +137,6 @@ fn main() {
                 .long("file")
                 .value_name("FILE")
                 .help("Path to the file to upload")
-                .required(false),
         )
         .arg(
             Arg::new("message")
