@@ -7,6 +7,7 @@ use std::error::Error;
 use std::fs;
 use std::env;
 use std::path::Path;
+use std::process;
 
 mod structs{
     pub mod slack_response;
@@ -169,6 +170,9 @@ fn main() {
 
     if let Err(err) = upload_file_to_slack(&token, &channel, &file, message) {
         eprintln!("Error: {}", err);
+        process::exit(1);
+    }else{
+        process::exit(0);
     }
 }
 
