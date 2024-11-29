@@ -1,4 +1,5 @@
 use clap::{Arg, Command};
+use git2::Repository;
 use reqwest::blocking::Client;
 use structs::slack_response::CompleteUploadResponse;
 use structs::slack_response::UploadURLResponse;
@@ -69,7 +70,7 @@ fn upload_file_to_slack(
         .json(&serde_json::json!({
             "files": [{"id": file_id, "title": file_name}],
             "channel_id": channel_id,
-            "initial_comment": message.unwrap_or("Uploaded via CLI"),
+            "initial_comment": format!("<!everyone>{}\n*Last commit*: \n```{}```",message.unwrap_or("Uploaded via CLI"), get_last_git_commit(".").unwrap_or("".to_string())),
         }))
         .send()?
         .json()?;
@@ -92,6 +93,26 @@ fn upload_file_to_slack(
     }
 
     Ok(())
+}
+
+fn get_last_git_commit(repo_path: &str) -> Result<String, Box<dyn Error>> {
+    let repo = Repository::open(repo_path)?;
+    
+    let head = repo.head()?;
+    
+    let head_commit = head.peel_to_commit()?;
+    
+    let commit_id = head_commit.id();
+    let author = head_commit.author();
+    let message = head_commit.message().unwrap_or("No commit message");
+
+    Ok(format!(
+        "Commit ID: {}\nAuthor: {} <{}>\nMessage: {}",
+        commit_id,
+        author.name().unwrap_or("Unknown"),
+        author.email().unwrap_or("Unknown"),
+        message
+    ))
 }
 
 fn main() {
