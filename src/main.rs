@@ -1,10 +1,11 @@
 use clap::{Arg, Command};
 use reqwest::blocking::Client;
-use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
-use structs::slack_response;
+use structs::slack_response::CompleteUploadResponse;
+use structs::slack_response::UploadURLResponse;
+use std::error::Error;
 use std::fs;
 use std::env;
-use serde_json::from_str;
+use std::path::Path;
 
 mod structs{
     pub mod slack_response;
@@ -12,45 +13,82 @@ mod structs{
 
 fn upload_file_to_slack(
     token: &str,
-    channel: &str,
+    channel_id: &str,
     file_path: &str,
     message: Option<&str>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::builder().timeout(None).build()?;
+) -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
+    let file_name = Path::new(file_path)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("file");
+    let file_size = fs::metadata(file_path)?.len();
+
+    // Step 1: Get the upload URL
+    let upload_url_response: UploadURLResponse = client
+        .get("https://slack.com/api/files.getUploadURLExternal")
+        .header("Authorization", format!("Bearer {}", token))
+        .query(&[("filename", file_name), ("length", &file_size.to_string())])
+        .send()?
+        .json()?;
+
+    if !upload_url_response.ok {
+        return Err(format!(
+            "Failed to get upload URL: {}",
+            upload_url_response.error.unwrap_or_else(|| "Unknown error".to_string())
+        )
+        .into());
+    }
+
+    let upload_url = upload_url_response
+        .upload_url
+        .ok_or("Missing upload URL in response")?;
+    let file_id = upload_url_response
+        .file_id
+        .ok_or("Missing file ID in response")?;
+
+    // Step 2: Upload the file to the obtained URL
     let file_content = fs::read(file_path)?;
-    let file_name = file_path.split('/').last().unwrap_or("file");
-
-    let mut headers = HeaderMap::new();
-    headers.insert(AUTHORIZATION, HeaderValue::from_str(&format!("Bearer {}", token))?);
-
-    let form = reqwest::blocking::multipart::Form::new()
-        .text("channels", channel.to_string())
-        .text("initial_comment", message.unwrap_or("Uploaded via CLI").to_string())
-        .text("title", file_name.to_string())
-        .part(
-            "file",
-            reqwest::blocking::multipart::Part::bytes(file_content).file_name(file_name.to_string()),
-        );
-
-    let response = client
-        .post("https://slack.com/api/conversations.files.upload")
-        .headers(headers)
-        .multipart(form)
+    let upload_response = client
+        .post(&upload_url)
+        .body(file_content)
         .send()?;
 
+    if !upload_response.status().is_success() {
+        return Err(format!(
+            "File upload failed with status: {}",
+            upload_response.status()
+        )
+        .into());
+    }
 
-    if response.status().is_success() {
-        let text = format!("{}", response.text()?);
-        let parsed : slack_response::SlackResponse = from_str(&text).expect("failed to parse respons JSON");
+    // Step 3: Complete the upload
+    let complete_upload_response: CompleteUploadResponse = client
+        .post("https://slack.com/api/files.completeUploadExternal")
+        .header("Authorization", format!("Bearer {}", token))
+        .json(&serde_json::json!({
+            "files": [{"id": file_id, "title": file_name}],
+            "channel_id": channel_id,
+            "initial_comment": message.unwrap_or("Uploaded via CLI"),
+        }))
+        .send()?
+        .json()?;
 
-        if parsed.ok {
-            println!("File uploaded successfully!");
-        } else{
-            let parsed_error : slack_response::FailedSlackResponse = from_str(&text).expect("failed to parse response JSON"); 
-            eprintln!("Failed to upload file: {}", parsed_error.error);
+    if complete_upload_response.ok {
+        if let Some(file) = complete_upload_response.file {
+            println!(
+                "File uploaded successfully! Details:\n- ID: {}\n- Name: {}\n- Title: {}\n- Mimetype: {}\n- Size: {} bytes\n- URL: {}",
+                file.id, file.name, file.title, file.mimetype, file.size, file.url_private
+            );
+        } else {
+            println!("File uploaded successfully, but no file details were returned.");
         }
     } else {
-        eprintln!("Error uploading file: {}", response.text()?);
+        return Err(format!(
+            "Failed to complete upload: {}",
+            complete_upload_response.error.unwrap_or_else(|| "Unknown error".to_string())
+        )
+        .into());
     }
 
     Ok(())
