@@ -19,7 +19,10 @@ fn upload_file_to_slack(
     file_path: &str,
     message: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
+    println!("uploading file {}", file_path);
+
     let client = Client::builder().timeout(None).build()?;
+
     let file_name = Path::new(file_path)
         .file_name()
         .and_then(|name| name.to_str())
