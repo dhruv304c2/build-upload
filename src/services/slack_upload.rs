@@ -165,7 +165,7 @@ fn get_last_git_commit() -> Result<String, Box<dyn Error>> {
         commit_id,
         author.name().unwrap_or("Unknown"),
         author.email().unwrap_or("Unknown"),
-        format!("**{}**", message)
+        format!("\n{}", message)
     ))
 }
 
