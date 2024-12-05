@@ -1,3 +1,4 @@
+use clap::ArgAction;
 use clap::{Arg, Command};
 use services::slack_upload;
 use std::env;
@@ -48,8 +49,8 @@ fn main() {
             Arg::new("verbose")
                 .short('v')
                 .long("verbose")
-                .value_name("Verbose")
                 .help("Verbose messaging on final build uploads")
+                .action(ArgAction::SetTrue)
         )
         .arg(
             Arg::new("message")
