@@ -1,119 +1,14 @@
 use clap::{Arg, Command};
-use git2::Repository;
-use reqwest::blocking::Client;
-use structs::slack_response::CompleteUploadResponse;
-use structs::slack_response::UploadURLResponse;
-use std::error::Error;
-use std::fs;
+use services::slack_upload;
 use std::env;
-use std::path::Path;
 use std::process;
 
 mod structs{
     pub mod slack_response;
 }
 
-fn upload_file_to_slack(
-    token: &str,
-    channel_id: &str,
-    file_path: &str,
-    message: Option<String>,
-) -> Result<(), Box<dyn Error>> {
-    println!("uploading file {}", file_path);
-
-    let client = Client::builder().timeout(None).build()?;
-
-    let file_name = Path::new(file_path)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("file");
-    let file_size = fs::metadata(file_path)?.len();
-
-    // Step 1: Get the upload URL
-    let upload_url_response: UploadURLResponse = client
-        .get("https://slack.com/api/files.getUploadURLExternal")
-        .header("Authorization", format!("Bearer {}", token))
-        .query(&[("filename", file_name), ("length", &file_size.to_string())])
-        .send()?
-        .json()?;
-
-    if !upload_url_response.ok {
-        return Err(format!(
-            "Failed to get upload URL: {}",
-            upload_url_response.error.unwrap_or_else(|| "Unknown error".to_string())
-        )
-        .into());
-    }
-
-    let upload_url = upload_url_response
-        .upload_url
-        .ok_or("Missing upload URL in response")?;
-    let file_id = upload_url_response
-        .file_id
-        .ok_or("Missing file ID in response")?;
-
-    // Step 2: Upload the file to the obtained URL
-    let file_content = fs::read(file_path)?;
-    let upload_response = client
-        .post(&upload_url)
-        .body(file_content)
-        .send()?;
-
-    if !upload_response.status().is_success() {
-        return Err(format!(
-            "File upload failed with status: {}",
-            upload_response.status()
-        )
-        .into());
-    }
-
-    // Step 3: Complete the upload
-    let complete_upload_response: CompleteUploadResponse = client
-        .post("https://slack.com/api/files.completeUploadExternal")
-        .header("Authorization", format!("Bearer {}", token))
-        .json(&serde_json::json!({
-            "files": [{"id": file_id, "title": file_name}],
-            "channel_id": channel_id,
-            "initial_comment": format!("{}\n*Last commit*: \n{}",message.unwrap_or("Uploaded via CLI".to_string()), get_last_git_commit(".").unwrap_or("".to_string())),
-        }))
-        .send()?
-        .json()?;
-
-    if complete_upload_response.ok {
-        if let Some(file) = complete_upload_response.file {
-            println!(
-                "File uploaded successfully! Details:\n- ID: {}\n- Name: {}\n- Title: {}\n- Mimetype: {}\n- Size: {} bytes\n- URL: {}",
-                file.id, file.name, file.title, file.mimetype, file.size, file.url_private
-            );
-        } else {
-            println!("File uploaded successfully, but no file details were returned.");
-        }
-    } else {
-        return Err(format!(
-            "Failed to complete upload: {}",
-            complete_upload_response.error.unwrap_or_else(|| "Unknown error".to_string())
-        )
-        .into());
-    }
-
-    Ok(())
-}
-
-fn get_last_git_commit(repo_path: &str) -> Result<String, Box<dyn Error>> {
-    let repo = Repository::open(repo_path)?;
-    let head = repo.head()?;
-    let head_commit = head.peel_to_commit()?;
-    let commit_id = head_commit.id();
-    let author = head_commit.author();
-    let message = head_commit.message().unwrap_or("No commit message");
-
-    Ok(format!(
-        "🔑 *Commit ID*: {}\n👤 *Author*: {} <{}>\n✉️ *Message*: {}",
-        commit_id,
-        author.name().unwrap_or("Unknown"),
-        author.email().unwrap_or("Unknown"),
-        message
-    ))
+mod services{
+    pub mod slack_upload;
 }
 
 fn main() {
@@ -141,6 +36,13 @@ fn main() {
                 .long("file")
                 .value_name("FILE")
                 .help("Path to the file to upload")
+        )
+        .arg(
+            Arg::new("name")
+                .short('n')
+                .long("name")
+                .value_name("NAME")
+                .help("name for uploaded file")
         )
         .arg(
             Arg::new("message")
@@ -171,7 +73,22 @@ fn main() {
         .or_else(|| env::var("MESSAGE").ok())
         .or_else(|| Some("".to_string()));
 
-    if let Err(err) = upload_file_to_slack(&token, &channel, &file, message) {
+    let name = matches.get_one::<String>("name")
+        .map(|s| s.clone())
+        .or_else(|| env::var("NAME").ok())
+        .or_else(|| Some("build".to_string()));
+
+    let slack_builder = slack_upload::Uploader::builder()
+        .message(message.expect("Error while building slack uploader, could not find an upload message"))
+        .tokne(token)
+        .channel(channel)
+        .build_path(file)
+        .new_name(name.expect("Error while building slack uploader, could not fina a name for the build file"))
+        .show_commit_message(true);
+
+    let slack_uploader = slack_builder.build();
+
+    if let Err(err) = slack_uploader.upload() {
         eprintln!("Error: {}", err);
         process::exit(1);
     }else{
