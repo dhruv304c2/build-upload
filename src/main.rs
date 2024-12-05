@@ -42,7 +42,14 @@ fn main() {
                 .short('n')
                 .long("name")
                 .value_name("NAME")
-                .help("name for uploaded file")
+                .help("Name for uploaded file")
+        )
+        .arg(
+            Arg::new("verbose")
+                .short('v')
+                .long("verbose")
+                .value_name("Verbose")
+                .help("Verbose messaging on final build uploads")
         )
         .arg(
             Arg::new("message")
@@ -76,15 +83,19 @@ fn main() {
     let name = matches.get_one::<String>("name")
         .map(|s| s.clone())
         .or_else(|| env::var("NAME").ok())
-        .or_else(|| Some("build".to_string()));
+        .or_else(|| Some(file.clone()));
+
+    let verbose = matches.get_one::<bool>("verbose")
+        .map(|s| s.clone())
+        .or_else(|| Some(false));
 
     let slack_builder = slack_upload::Uploader::builder()
         .message(message.expect("Error while building slack uploader, could not find an upload message"))
         .tokne(token)
         .channel(channel)
         .build_path(file)
-        .new_name(name.expect("Error while building slack uploader, could not fina a name for the build file"))
-        .show_commit_message(true);
+        .new_name(name.expect("Error while building slack uploader, could not find new file name"))
+        .show_commit_message(verbose.expect("Error while building slack uploader, could not find verbosity option"));
 
     let slack_uploader = slack_builder.build();
 

@@ -10,7 +10,7 @@ pub struct Uploader{
     pub(crate) token: String,
     pub(crate) channel: String,
     pub(crate) build_path: String,
-    pub(crate) new_name: String,
+    pub(crate) new_name: Option<String>,
     pub(crate) show_commit_message: bool,
 }
 
@@ -44,7 +44,7 @@ impl Builder {
     }
 
     pub fn new_name(mut self, val: String) -> Builder{
-        self.uploader.new_name = val;
+        self.uploader.new_name = Some(val);
         self
     }
 
@@ -59,7 +59,7 @@ impl Uploader{
         Builder{
             uploader : Uploader { message: "".to_string(), 
                 build_path: "".to_string(),
-                new_name: "file".to_string(),
+                new_name: None,
                 show_commit_message: false,
                 channel: "".to_string(),
                 token: "".to_string(), 
@@ -120,11 +120,18 @@ impl Uploader{
             "".to_string()
         };
 
+        let output_file_name : String;
+
+        match &self.new_name {
+            Some(name) => output_file_name = name.to_string(),
+            None => output_file_name = file_name.to_string(),
+        }
+
         let complete_upload_response: CompleteUploadResponse = client
             .post("https://slack.com/api/files.completeUploadExternal")
             .header("Authorization", format!("Bearer {}", self.token))
             .json(&serde_json::json!({
-                "files": [{"id": file_id, "title": &self.new_name}],
+                "files": [{"id": file_id, "title": output_file_name}],
                 "channel_id": &self.channel,
                 "initial_comment": format!("{}\n{}", &self.message, commit_message),
             }))
