@@ -1,5 +1,6 @@
 use clap::ArgAction;
 use clap::{Arg, Command};
+use services::apk_helper::{extract_apk_from_aab, extract_file_name, is_aab_file};
 use services::slack_upload;
 use std::env;
 use std::process;
@@ -10,6 +11,7 @@ mod structs{
 
 mod services{
     pub mod slack_upload;
+    pub mod apk_helper;
 }
 
 fn main() {
@@ -92,13 +94,35 @@ fn main() {
 
     let slack_builder = slack_upload::Uploader::builder()
         .message(message.expect("Error while building slack uploader, could not find an upload message"))
-        .tokne(token)
-        .channel(channel)
-        .build_path(file)
+        .token(token.clone())
+        .channel(channel.clone())
+        .build_path(file.clone())
         .new_name(name.expect("Error while building slack uploader, could not find new file name"))
         .show_commit_message(verbose.expect("Error while building slack uploader, could not find verbosity option"));
 
     let slack_uploader = slack_builder.build();
+
+    if is_aab_file(&file) {
+        if let Ok(apk) = extract_apk_from_aab(file.clone()){
+            let apk_uploader = slack_upload::Uploader::builder()
+            .message("*Extracted apk:*".to_string())
+            .token(token.clone())
+            .channel(channel.clone())
+            .build_path(apk.clone())
+            .new_name(extract_file_name(&apk).expect("failed to extract valid file name from apk path"))
+            .build();
+
+            if let Err(err) = apk_uploader.upload() {
+                 eprintln!("Error: {}", err);
+                process::exit(1);
+            }else{
+                process::exit(0);
+            }
+
+        }else {
+            process::exit(1);
+        }
+    }
 
     if let Err(err) = slack_uploader.upload() {
         eprintln!("Error: {}", err);

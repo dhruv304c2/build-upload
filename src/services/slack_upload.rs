@@ -15,7 +15,7 @@ pub struct Uploader{
 }
 
 pub struct Builder{
-    pub(crate) uploader: Uploader,
+    uploader: Uploader,
 }
 
 impl Builder {
@@ -28,7 +28,7 @@ impl Builder {
         self
     }
 
-    pub fn tokne(mut self, val: String) -> Builder{
+    pub fn token(mut self, val: String) -> Builder{
         self.uploader.token= val;
         self
     }
