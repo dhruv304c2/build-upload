@@ -102,32 +102,31 @@ fn main() {
 
     let slack_uploader = slack_builder.build();
 
-    if is_aab_file(&file) {
-        if let Ok(apk) = extract_apk_from_aab(file.clone()){
-            let apk_uploader = slack_upload::Uploader::builder()
-            .message("*Extracted apk:*".to_string())
-            .token(token.clone())
-            .channel(channel.clone())
-            .build_path(apk.clone())
-            .new_name(extract_file_name(&apk).expect("failed to extract valid file name from apk path"))
-            .build();
-
-            if let Err(err) = apk_uploader.upload() {
-                 eprintln!("Error: {}", err);
-                process::exit(1);
-            }else{
-                process::exit(0);
-            }
-
-        }else {
-            process::exit(1);
-        }
-    }
-
     if let Err(err) = slack_uploader.upload() {
         eprintln!("Error: {}", err);
         process::exit(1);
-    }else{
+    } else {
+        if is_aab_file(&file) {
+            if let Ok(apk) = extract_apk_from_aab(file.clone()){
+                let apk_uploader = slack_upload::Uploader::builder()
+                .message("*Extracted apk:*".to_string())
+                .token(token.clone())
+                .channel(channel.clone())
+                .build_path(apk.clone())
+                .new_name(extract_file_name(&apk).expect("failed to extract valid file name from apk path"))
+                .build();
+
+                if let Err(err) = apk_uploader.upload() {
+                     eprintln!("Error: {}", err);
+                    process::exit(1);
+                }else{
+                    process::exit(0);
+                }
+
+            }else {
+                process::exit(1);
+            }
+        }
         process::exit(0);
     }
 }
