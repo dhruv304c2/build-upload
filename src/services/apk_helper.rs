@@ -1,7 +1,56 @@
 use std::error::Error;
-use std::fs;
+use std::{env, fs};
 use std::path::Path;
 use std::process::Command;
+
+
+fn install_java() -> Result<(), Box<dyn Error>> {
+    let os = env::consts::OS;
+
+    match os {
+        "windows" => {
+            println!("Detected Windows OS. Installing Java...");
+            let output = Command::new("choco")
+                .arg("install")
+                .arg("openjdk")
+                .arg("-y")
+                .output()?;
+
+            if !output.status.success() {
+                return Err("Failed to install Java on Windows.".into());
+            }
+        },
+        "linux" => {
+            println!("Detected Linux OS. Installing Java...");
+            let output = Command::new("sudo")
+                .arg("apt")
+                .arg("install")
+                .arg("-y")
+                .arg("openjdk-17-jdk")
+                .output()?;
+
+            if !output.status.success() {
+                return Err("Failed to install Java on Linux.".into());
+            }
+        },
+        "macos" => {
+            println!("Detected macOS. Installing Java...");
+            let output = Command::new("brew")
+                .arg("install")
+                .arg("openjdk@17")
+                .output()?;
+
+            if !output.status.success() {
+                return Err("Failed to install Java on macOS.".into());
+            }
+        },
+        _ => {
+            return Err("Unsupported OS.".into());
+        },
+    }
+
+    Ok(())
+}
 
 pub fn download_bundletool() -> Result<(), Box<dyn Error>> {
     let bundletool_url = "https://github.com/google/bundletool/releases/download/1.13.1/bundletool-all-1.13.1.jar";
@@ -30,6 +79,7 @@ pub fn download_bundletool() -> Result<(), Box<dyn Error>> {
 }
 
 pub fn extract_apk_from_aab(aab_path: String) -> Result<String, Box<dyn Error>> {
+    install_java()?;
     download_bundletool()?;
 
     let bundletool_path = "bundletool.jar";
