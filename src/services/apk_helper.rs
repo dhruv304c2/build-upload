@@ -91,12 +91,3 @@ pub fn is_aab_file(file_path: &str) -> bool {
     }
 }
 
-pub fn extract_file_name(file_path: &str) -> Option<String> {
-    let path = Path::new(file_path);
-
-    // Extract the file name and convert it to a String
-    path.file_name()
-        .and_then(|os_str| os_str.to_str())
-        .map(|s| s.to_string())
-}
-
