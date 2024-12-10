@@ -97,7 +97,7 @@ fn main() {
         .token(token.clone())
         .channel(channel.clone())
         .build_path(file.clone())
-        .new_name(name.expect("Error while building slack uploader, could not find new file name"))
+        .new_name(name.clone().expect("Error while building slack uploader, could not find new file name"))
         .show_commit_message(verbose.expect("Error while building slack uploader, could not find verbosity option"));
 
     let slack_uploader = slack_builder.build();
@@ -114,7 +114,7 @@ fn main() {
                     .token(token.clone())
                     .channel(channel.clone())
                     .build_path(apk.clone())
-                    .new_name(extract_file_name(&apk).expect("failed to extract valid file name from apk path"))
+                    .new_name(name.expect("Error while building slack uploader, could not find new file name"))
                     .build();
 
                     if let Err(err) = apk_uploader.upload() {
