@@ -1,6 +1,6 @@
 use clap::ArgAction;
 use clap::{Arg, Command};
-use services::apk_helper::{extract_apk_from_aab, extract_file_name, is_aab_file};
+use services::apk_helper::{extract_apk_from_aab, is_aab_file};
 use services::slack_upload;
 use std::env;
 use std::process;
