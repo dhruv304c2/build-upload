@@ -76,6 +76,12 @@ impl Uploader{
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("file");
+
+        let extension = Path::new(&self.build_path)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .expect("cannot determine file extension");
+
         let file_size = fs::metadata(&self.build_path)?.len();
 
         // Step 1: Get the upload URL
@@ -131,7 +137,7 @@ impl Uploader{
             .post("https://slack.com/api/files.completeUploadExternal")
             .header("Authorization", format!("Bearer {}", self.token))
             .json(&serde_json::json!({
-                "files": [{"id": file_id, "title": output_file_name}],
+                "files": [{"id": file_id, "title": format!("{}.{}",output_file_name, extension)}],
                 "channel_id": &self.channel,
                 "initial_comment": format!("{}\n{}", &self.message, commit_message),
             }))
