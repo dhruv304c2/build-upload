@@ -1,7 +1,10 @@
 use clap::ArgAction;
 use clap::{Arg, Command};
 use services::slack_upload;
-use std::env;
+use std::{env, fs};
+use std::io::Error;
+use std::io::ErrorKind;
+use std::path::Path;
 use std::process;
 
 mod structs{
@@ -90,11 +93,13 @@ fn main() {
         .map(|s| s.clone())
         .or_else(|| Some(false));
 
+    let renamed = rename_file(&file.to_string(),&name.clone().expect("name not found").to_string());
+
     let slack_builder = slack_upload::Uploader::builder()
         .message(message.expect("Error while building slack uploader, could not find an upload message"))
         .token(token.clone())
         .channel(channel.clone())
-        .build_path(file.clone())
+        .build_path(renamed.expect("failed to get renamed file path").clone())
         .new_name(name.clone().expect("Error while building slack uploader, could not find new file name"))
         .show_commit_message(verbose.expect("Error while building slack uploader, could not find verbosity option"));
 
@@ -106,5 +111,20 @@ fn main() {
     } else {
         process::exit(0);
     }
+}
+
+pub fn rename_file(old_path: &str, new_name: &str) -> Result<String,Error> {
+    let old_path = Path::new(old_path);
+    let parent_dir = old_path.parent().ok_or_else(|| {
+        Error::new(ErrorKind::NotFound, "The file's parent directory could not be found")
+    })?;
+
+    let extension = old_path.extension().and_then(|ext| ext.to_str()).unwrap_or("");
+    let new_file_name = format!("{}.{}", new_name, extension);
+    let new_path = parent_dir.join(new_file_name);
+
+    fs::rename(old_path, &new_path)?;
+
+    Ok(new_path.to_string_lossy().to_string())
 }
 
