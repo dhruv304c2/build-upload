@@ -80,6 +80,7 @@ APK_PATH="$OUTPUT_DIR/$UPLOAD_NAME.apks"
 mkdir -p "$OUTPUT_DIR"
 
 java -jar "$TOOL_FILE" build-apks --bundle="$BUILD_FILE" --output="$APK_PATH" --mode=universal
+wait $!
 
 if [ $? -ne 0 ]; then
     echo "Error occurred while extracting APKs from AAB"
