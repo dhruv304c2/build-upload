@@ -123,7 +123,7 @@ pub fn rename_file(old_path: &str, new_name: &str) -> Result<String,Error> {
     let new_file_name = format!("{}.{}", new_name, extension);
     let new_path = parent_dir.join(new_file_name);
 
-    fs::rename(old_path, &new_path)?;
+    fs::copy(old_path, &new_path)?;
 
     Ok(new_path.to_string_lossy().to_string())
 }
