@@ -1,6 +1,5 @@
 use clap::ArgAction;
 use clap::{Arg, Command};
-use services::apk_helper::{extract_apk_from_aab, is_aab_file};
 use services::slack_upload;
 use std::env;
 use std::process;
@@ -11,7 +10,6 @@ mod structs{
 
 mod services{
     pub mod slack_upload;
-    pub mod apk_helper;
 }
 
 fn main() {
@@ -106,30 +104,6 @@ fn main() {
         eprintln!("Error: {}", err);
         process::exit(1);
     } else {
-        if is_aab_file(&file) {
-            match extract_apk_from_aab(file.clone()) {
-                Ok(apk) => {
-                    let apk_uploader = slack_upload::Uploader::builder()
-                    .message("*Extracted apk:*".to_string())
-                    .token(token.clone())
-                    .channel(channel.clone())
-                    .build_path(apk.clone())
-                    .new_name(name.expect("Error while building slack uploader, could not find new file name"))
-                    .build();
-
-                    if let Err(err) = apk_uploader.upload() {
-                         eprintln!("Error: {}", err);
-                        process::exit(1);
-                    }else{
-                        process::exit(0);
-                    }
-                },
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    process::exit(1);
-                },
-            }
-        }
         process::exit(0);
     }
 }
