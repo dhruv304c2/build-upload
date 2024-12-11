@@ -9,15 +9,41 @@ fn install_java() -> Result<(), Box<dyn Error>> {
 
     match os {
         "windows" => {
-            println!("Detected Windows OS. Installing Java...");
-            let output = Command::new("choco")
-                .arg("install")
-                .arg("openjdk")
-                .arg("-y")
-                .output()?;
+            println!("Detected Windows OS. Checking if Java is installed...");
 
-            if !output.status.success() {
-                return Err("Failed to install Java on Windows.".into());
+            let java_check = Command::new("java")
+                .arg("-version")
+                .output();
+
+            match java_check {
+                Ok(output) => {
+                    if !output.status.success() {
+                        println!("Java is not installed or cannot be detected.");
+                        let output = Command::new("winget")
+                            .arg("install")
+                            .arg("openjdk")
+                            .arg("-y")
+                            .output()?;
+
+                        if !output.status.success() {
+                            return Err("Failed to install Java using winget.".into());
+                        }
+                    } else {
+                        println!("Java is already installed.");
+                    }
+                },
+                Err(_) => {
+                    println!("Java is not installed. Installing Java using winget...");
+                    let output = Command::new("winget")
+                        .arg("install")
+                        .arg("openjdk")
+                        .arg("-y")
+                        .output()?;
+
+                    if !output.status.success() {
+                        return Err("Failed to install Java using winget.".into());
+                    }
+                }
             }
         },
         "linux" => {
