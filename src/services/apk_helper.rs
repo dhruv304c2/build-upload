@@ -36,7 +36,6 @@ fn install_java() -> Result<(), Box<dyn Error>> {
                     let output = Command::new("winget")
                         .arg("install")
                         .arg("openjdk")
-                        .arg("-y")
                         .output()?;
 
                     if !output.status.success() {
