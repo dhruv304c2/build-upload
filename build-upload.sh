@@ -35,7 +35,7 @@ fi
 chmod +x "$OUTPUT_FILE"
 
 if [ -e "./CHANGELOG.md" ]; then
-  ./"$OUTPUT_FILE" -f "CHANGELOG.md" -v -m "*[$VERSION][$ENV] $PROJECT_NAME*, Nightly build generated <!everyone>"
+  ./"$OUTPUT_FILE" -f "CHANGELOG.md"  -n "CHANGELOG" -v -m "*[$VERSION][$ENV] $PROJECT_NAME*, Nightly build generated <!everyone>"
   if [ $? -eq 0 ]; then
     echo "Change logs uploaded successfully."
   else
@@ -46,15 +46,22 @@ else
   echo "No change log file found"
 fi
 
-UPLOAD_NAME="$FILE_NAME-$ENV-$SCM_BRANCH-v.$VERSION($UCB_BUILD_NUMBER)"
+UPLOAD_NAME="$FILE_NAME-$ENV-v.$VERSION($UCB_BUILD_NUMBER)"
 
-./"$OUTPUT_FILE" -f "$BUILD_FILE" -n "$UPLOAD_NAME" -m "*Builds:*"
+./"$OUTPUT_FILE" -f "$DIR/$BUILD_FILE.$EXT" -n "$UPLOAD_NAME" -m "*Builds:*"
 
 if [ $? -eq 0 ]; then
   echo "Build uploaded successfully."
 else
   echo "Error: Build upload failed."
   exit 1
+fi
+
+if [[ "$EXT" == aab ]]; then
+  echo "File has .aab extension. Continuing..."
+else
+  echo "File does not have .aab extension. Exiting with success."
+  exit 0
 fi
 
 BUNDLETOOL_VERSION="1.13.1"
@@ -68,30 +75,34 @@ mkdir -p "$OUTPUT_DIR"
 curl -L "$BUNDLETOOL_URL" -o "$TOOL_FILE"
 
 if [ -f "$TOOL_FILE" ]; then
-    echo "BundleTool downloaded successfully to $TOOL_FILE"
+  echo "BundleTool downloaded successfully to $TOOL_FILE"
 else
-    echo "Failed to download BundleTool"
-    exit 1
+  echo "Failed to download BundleTool"
+  exit 1
 fi
 
-OUTPUT_DIR="output_apks"
-APK_PATH="$OUTPUT_DIR/$UPLOAD_NAME.apks"
+APK_PATH="./$UPLOAD_NAME.apks"
 
-mkdir -p "$OUTPUT_DIR"
-
-java -jar "$TOOL_FILE" build-apks --bundle="$BUILD_FILE" --output="$APK_PATH" --mode=universal
+java -jar "$TOOL_FILE" build-apks --bundle="$DIR/$UPLOAD_NAME.$EXT" --output="$APK_PATH" --mode=universal
 wait $!
 
 if [ $? -ne 0 ]; then
     echo "Error occurred while extracting APKs from AAB"
     exit 1
 else
+  while fuser "$APK_PATH" > /dev/null 2>&1; do
+    echo "$APK_PATH File is locked. Waiting..."
+    sleep 1
+  done
+
+  echo "$APK_PATH File is no longer locked. Proceeding..."
+
   ./"$OUTPUT_FILE" -f "$APK_PATH" -n "$UPLOAD_NAME" -m "Note: Use Zarchiver to extract and install Universal.apk"
 
-    if [ $? -eq 0 ]; then
-      echo "Build uploaded successfully."
-    else
-      echo "Error: Build upload failed."
-      exit 1
-    fi
+  if [ $? -eq 0 ]; then
+    echo "Build uploaded successfully."
+  else
+    echo "Error: Build upload failed."
+    exit 1
+  fi
 fi
