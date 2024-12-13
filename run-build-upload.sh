@@ -16,7 +16,7 @@ echo "Script directory: $SCRIPT_DIR"
 # Change to the script directory
 cd "$SCRIPT_DIR"
 
-# Determine cli bin to donwload based on OS
+# Determine cli bin to download based on OS
 OS=$(uname -s)
 
 if [ "$OS" == "Linux" ]; then
@@ -34,10 +34,6 @@ else
 fi
 
 echo "Downloading from $CLI_URL"
-
-# Download the Rust CLI tool
-CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload.exe"
-OUTPUT_FILE="build-upload.exe"
 
 if curl -L -o "$OUTPUT_FILE" "$CLI_URL"; then
   echo "Downloaded build-upload.exe successfully."
