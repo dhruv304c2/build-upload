@@ -14,6 +14,7 @@ pub struct Uploader{
     pub(crate) show_commit_message: bool,
 }
 
+#[derive(Clone)]
 pub struct Builder{
     uploader: Uploader,
 }
@@ -23,34 +24,34 @@ impl Builder {
         self.uploader.clone()
     }
 
-    pub fn message(mut self, val: String) -> Builder{
-        self.uploader.message = val;
-        self
+    pub fn message(&mut self, val: &String) -> Builder{
+        self.uploader.message = val.clone();
+        self.clone()
     }
 
-    pub fn token(mut self, val: String) -> Builder{
-        self.uploader.token= val;
-        self
+    pub fn token(&mut self, val: &String) -> Builder{
+        self.uploader.token= val.clone();
+        self.clone()
     }
 
-    pub fn channel(mut self, val: String) -> Builder{
-        self.uploader.channel= val;
-        self
+    pub fn channel(&mut self, val: &String) -> Builder{
+        self.uploader.channel= val.clone();
+        self.clone()
     }
 
-    pub fn build_path(mut self, val: String) -> Builder{
-        self.uploader.build_path= val;
-        self
+    pub fn build_path(&mut self, val: &String) -> Builder{
+        self.uploader.build_path= val.clone();
+        self.clone()
     }
 
-    pub fn new_name(mut self, val: String) -> Builder{
-        self.uploader.new_name = Some(val);
-        self
+    pub fn new_name(&mut self, val: &String) -> Builder{
+        self.uploader.new_name = Some(val.clone());
+        self.clone()
     }
 
-    pub fn show_commit_message(mut self, val: bool) -> Builder{
-        self.uploader.show_commit_message = val;
-        self
+    pub fn show_commit_message(&mut self, val: &bool) -> Builder{
+        self.uploader.show_commit_message = val.clone();
+        self.clone()
     }
 }
 
@@ -165,7 +166,7 @@ impl Uploader{
     }
 }
 
-fn get_last_git_commit() -> Result<String, Box<dyn Error>> {
+pub fn get_last_git_commit() -> Result<String, Box<dyn Error>> {
     let repo = Repository::open("./")?;
     let head = repo.head()?;
     let head_commit = head.peel_to_commit()?;

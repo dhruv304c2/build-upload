@@ -3,10 +3,6 @@
 # Exit immediately if any command fails
 set -e
 
-VERSION="1.1.0"
-PROJECT_NAME="Play Doge"
-ENV="Dev"
-
 # Check if CLI_VERSION is set
 if [ -z "$CLI_VERSION" ]; then
   echo "Error: CLI_VERSION is not set. Please export it before running this script."
