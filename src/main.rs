@@ -146,7 +146,11 @@ fn main() {
             &file){
             Ok(res) => {
                 _= slack_client.send_message(&format!("{}", msg_ur));
-                _= slack_client.send_message(&format!("{}", get_last_git_commit().unwrap_or("".to_string())));
+
+                if include_git_msg_ur {
+                    _= slack_client.send_message(&format!("{}", get_last_git_commit().unwrap_or("".to_string())));
+                }
+
                 _= slack_client.send_message(&format!("*Diawi install link*: {}\n*QR* {}", res.link, res.qr_code))
             }
             Err(_) => {
