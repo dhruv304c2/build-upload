@@ -16,6 +16,25 @@ echo "Script directory: $SCRIPT_DIR"
 # Change to the script directory
 cd "$SCRIPT_DIR"
 
+# Determine cli bin to donwload based on OS
+OS=$(uname -s)
+
+if [ "$OS" == "Linux" ]; then
+    CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload-linux"
+    OUTPUT_FILE="build-upload-linux"
+elif [[ "$OS" == "Darwin" ]]; then
+    CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload-macos"
+    OUTPUT_FILE="build-upload-macos"
+elif [[ "$OS" =~ MINGW|CYGWIN|MSYS ]]; then
+    CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload.exe"
+    OUTPUT_FILE="build-upload.exe"
+else
+    echo "Unsupported OS: $OS"
+    exit 1
+fi
+
+echo "Downloading from $CLI_URL"
+
 # Download the Rust CLI tool
 CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload.exe"
 OUTPUT_FILE="build-upload.exe"
