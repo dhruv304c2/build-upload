@@ -89,7 +89,7 @@ fn main() {
     let diawi_token = matches.get_one::<String>("diawi token")
         .map(|s| s.clone())
         .or_else(|| env::var("DIAWI_TOKEN").ok())
-        .expect("Diawi token is required, provide is via -d option or the DIAWI_TOKEN environment variable.");
+        .or_else(|| None);
 
     let platform = matches.get_one::<String>("platform")
         .map(|s| s.clone())
@@ -140,7 +140,10 @@ fn main() {
     }
 
     if platform == "iOS" {
-        match upload::upload(&diawi_token, &file){
+
+        match upload::upload(&diawi_token.expect(
+            "missing diawi token, diawi token is required IOS builds, set using -d or DIAWI_TOKEN"),
+            &file){
             Ok(res) => {
                 _= slack_client.send_message(&format!("{}", msg_ur));
                 _= slack_client.send_message(&format!("{}", get_last_git_commit().unwrap_or("".to_string())));
