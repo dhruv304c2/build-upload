@@ -96,7 +96,6 @@ fn main() {
         .or_else(|| env::var("BUILD_PLATFORM").ok())
         .expect("platform is required, provide is via -p option or the BUILD_PLATFORM environment variable.");
 
-
     let channel = matches.get_one::<String>("channel")
         .map(|s| s.clone())
         .or_else(|| env::var("CHANNEL_ID").ok())
