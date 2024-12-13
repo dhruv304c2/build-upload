@@ -31,7 +31,7 @@ fi
 chmod +x "$OUTPUT_FILE"
 
 if [ -e "./CHANGELOG.md" ]; then
-  ./"$OUTPUT_FILE" -f "CHANGELOG.md"  -n "CHANGELOG" -v -m "*[$VERSION][$ENV] $PROJECT_NAME*, Nightly build generated <!everyone>"
+  ./"$OUTPUT_FILE" -f "CHANGELOG.md"  -n "CHANGELOG" -v -m "*[$VERSION][$BUILD_PLATFORM][$ENV] $PROJECT_NAME*, Nightly build generated <!everyone>"
   if [ $? -eq 0 ]; then
     echo "Change logs uploaded successfully."
   else
