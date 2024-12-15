@@ -3,10 +3,6 @@
 # Exit immediately if any command fails
 set -e
 
-VERSION="1.1.0"
-PROJECT_NAME="Play Doge"
-ENV="Dev"
-
 # Check if CLI_VERSION is set
 if [ -z "$CLI_VERSION" ]; then
   echo "Error: CLI_VERSION is not set. Please export it before running this script."
@@ -20,9 +16,24 @@ echo "Script directory: $SCRIPT_DIR"
 # Change to the script directory
 cd "$SCRIPT_DIR"
 
-# Download the Rust CLI tool
-CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload.exe"
-OUTPUT_FILE="build-upload.exe"
+# Determine cli bin to download based on OS
+OS=$(uname -s)
+
+if [ "$OS" == "Linux" ]; then
+    CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload-linux"
+    OUTPUT_FILE="build-upload-linux"
+elif [[ "$OS" == "Darwin" ]]; then
+    CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload-macos"
+    OUTPUT_FILE="build-upload-macos"
+elif [[ "$OS" =~ MINGW|CYGWIN|MSYS ]]; then
+    CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload.exe"
+    OUTPUT_FILE="build-upload.exe"
+else
+    echo "Unsupported OS: $OS"
+    exit 1
+fi
+
+echo "Downloading from $CLI_URL"
 
 if curl -L -o "$OUTPUT_FILE" "$CLI_URL"; then
   echo "Downloaded build-upload.exe successfully."
@@ -35,7 +46,7 @@ fi
 chmod +x "$OUTPUT_FILE"
 
 if [ -e "./CHANGELOG.md" ]; then
-  ./"$OUTPUT_FILE" -f "CHANGELOG.md"  -n "CHANGELOG" -v -m "*[$VERSION][$ENV] $PROJECT_NAME*, Nightly build generated <!everyone>"
+  ./"$OUTPUT_FILE" -f "CHANGELOG.md"  -n "CHANGELOG" -v -m "*[$VERSION][$BUILD_PLATFORM][$ENV] $PROJECT_NAME*, $HEADER"
   if [ $? -eq 0 ]; then
     echo "Change logs uploaded successfully."
   else

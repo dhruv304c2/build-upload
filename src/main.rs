@@ -1,6 +1,8 @@
 use clap::ArgAction;
 use clap::{Arg, Command};
-use services::slack_upload;
+use services::diawi::feats::upload;
+use services::slack::structs::slack_client::SlackClient;
+use crate::services::slack::feats::upload::get_last_git_commit;
 use std::{env, fs};
 use std::io::Error;
 use std::io::ErrorKind;
@@ -12,7 +14,8 @@ mod structs{
 }
 
 mod services{
-    pub mod slack_upload;
+    pub mod slack;
+    pub mod diawi;
 }
 
 fn main() {
@@ -21,11 +24,25 @@ fn main() {
         .author("Your Name <your.email@example.com>")
         .about("Uploads files to a specified Slack channel")
         .arg(
-            Arg::new("token")
-                .short('t')
-                .long("token")
-                .value_name("TOKEN")
+            Arg::new("slack token")
+                .short('s')
+                .long("slack token")
+                .value_name("SLACK_TOKEN")
                 .help("Your Slack bot token")
+        )
+        .arg(
+            Arg::new("diawi token")
+                .short('d')
+                .long("diawi token")
+                .value_name("DIAWI_TOKEN")
+                .help("Your Slack bot token")
+        )
+        .arg(
+            Arg::new("platform")
+                .short('p')
+                .long("platform")
+                .value_name("BUILD_PLATFORM")
+                .help("platform you are building for")
         )
         .arg(
             Arg::new("channel")
@@ -64,10 +81,20 @@ fn main() {
         )
         .get_matches();
 
-    let token = matches.get_one::<String>("token")
+    let slack_token = matches.get_one::<String>("slack token")
         .map(|s| s.clone())
         .or_else(|| env::var("SLACK_TOKEN").ok())
-        .expect("Slack token is required, provide is via -t option or the SLACK_TOKEN environment variable.");
+        .expect("Slack token is required, provide is via -s option or the SLACK_TOKEN environment variable.");
+
+    let diawi_token = matches.get_one::<String>("diawi token")
+        .map(|s| s.clone())
+        .or_else(|| env::var("DIAWI_TOKEN").ok())
+        .or_else(|| None);
+
+    let platform = matches.get_one::<String>("platform")
+        .map(|s| s.clone())
+        .or_else(|| env::var("BUILD_PLATFORM").ok())
+        .expect("platform is required, provide is via -p option or the BUILD_PLATFORM environment variable.");
 
     let channel = matches.get_one::<String>("channel")
         .map(|s| s.clone())
@@ -95,21 +122,40 @@ fn main() {
 
     let renamed = rename_file(&file.to_string(),&name.clone().expect("name not found").to_string());
 
-    let slack_builder = slack_upload::Uploader::builder()
-        .message(message.expect("Error while building slack uploader, could not find an upload message"))
-        .token(token.clone())
-        .channel(channel.clone())
-        .build_path(renamed.expect("failed to get renamed file path").clone())
-        .new_name(name.clone().expect("Error while building slack uploader, could not find new file name"))
-        .show_commit_message(verbose.expect("Error while building slack uploader, could not find verbosity option"));
+    let mut slack_client = SlackClient::new(&slack_token, &channel);
 
-    let slack_uploader = slack_builder.build();
+    let msg_ur = message.expect("could not determine upload message");
+    let fp_ur = renamed.expect("could not determine upload file path");
+    let include_git_msg_ur = verbose.expect("could not determine git message option");
+    let name_ur = name.expect("could not determine upload file name");
 
-    if let Err(err) = slack_uploader.upload() {
-        eprintln!("Error: {}", err);
-        process::exit(1);
-    } else {
-        process::exit(0);
+    if platform == "Android" {
+        if let Err(err) = slack_client.upload_file(msg_ur, fp_ur, name_ur, include_git_msg_ur) {
+            eprintln!("Error: {}", err);
+            process::exit(1);
+        } else {
+            process::exit(0);
+        }
+    }
+
+    if platform == "iOS" {
+
+        match upload::upload(&diawi_token.expect(
+            "missing diawi token, diawi token is required IOS builds, set using -d or DIAWI_TOKEN"),
+            &file){
+            Ok(res) => {
+                _= slack_client.send_message(&format!("{}", msg_ur));
+
+                if include_git_msg_ur {
+                    _= slack_client.send_message(&format!("{}", get_last_git_commit().unwrap_or("".to_string())));
+                }
+
+                _= slack_client.send_message(&format!("*Diawi install link*: {}\n*QR* {}", res.link, res.qr_code))
+            }
+            Err(_) => {
+                process::exit(1);
+            }
+        }
     }
 }
 
