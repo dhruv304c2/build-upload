@@ -129,7 +129,7 @@ fn main() {
     let include_git_msg_ur = verbose.expect("could not determine git message option");
     let name_ur = name.expect("could not determine upload file name");
 
-    if platform == "Android" {
+    if platform == "android" {
         if let Err(err) = slack_client.upload_file(msg_ur, fp_ur, name_ur, include_git_msg_ur) {
             eprintln!("Error: {}", err);
             process::exit(1);
