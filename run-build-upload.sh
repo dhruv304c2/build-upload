@@ -36,7 +36,7 @@ fi
 echo "Downloading from $CLI_URL"
 
 if curl -L -o "$OUTPUT_FILE" "$CLI_URL"; then
-  echo "Downloaded build-upload.exe successfully."
+  echo "Downloaded build-upload cli successfully."
 else
   echo "Error: Failed to download build-upload.exe."
   exit 1

@@ -138,7 +138,7 @@ fn main() {
         }
     }
 
-    if platform == "iOS" {
+    if platform == "ios" {
 
         match upload::upload(&diawi_token.expect(
             "missing diawi token, diawi token is required IOS builds, set using -d or DIAWI_TOKEN"),
