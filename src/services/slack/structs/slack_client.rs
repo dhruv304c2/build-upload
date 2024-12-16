@@ -19,10 +19,10 @@ impl SlackClient{
     }
 
     pub fn upload_file(&mut self,
-        message: String, 
-        file_path: String, 
-        name: String, 
-        inclued_git: bool) -> Result<(), Box<dyn Error>>{
+        message: &String, 
+        file_path: &String, 
+        name: &String, 
+        inclued_git: &bool) -> Result<(), Box<dyn Error>>{
             let uploader = self.uploader()
             .message(&message)
             .build_path(&file_path)
