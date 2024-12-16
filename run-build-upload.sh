@@ -19,10 +19,10 @@ cd "$SCRIPT_DIR"
 # Determine cli bin to download based on OS
 OS=$(uname -s)
 
-if [ "$OS" == "Linux" ]; then
+if [ "$OS" = "Linux" ]; then
     CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload-linux"
     OUTPUT_FILE="build-upload-linux"
-elif [[ "$OS" == "Darwin" ]]; then
+elif [[ "$OS" = "Darwin" ]]; then
     CLI_URL="https://github.com/dhruv304c2/build-upload/releases/download/$CLI_VERSION/build-upload-macos"
     OUTPUT_FILE="build-upload-macos"
 elif [[ "$OS" =~ MINGW|CYGWIN|MSYS ]]; then
