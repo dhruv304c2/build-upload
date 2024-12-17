@@ -135,15 +135,16 @@ fn main() {
             "missing diawi token, diawi token is required IOS builds, set using -d or DIAWI_TOKEN"),
             &file){
             Ok(res) => {
-                _= slack_client.send_message(&format!("{}", msg_ur));
+                slack_client.send_message(&format!("{}", msg_ur)).expect("failed to send slack message");
 
                 if include_git_msg_ur {
-                    _= slack_client.send_message(&format!("{}", get_last_git_commit().unwrap_or("".to_string())));
+                    slack_client.send_message(&format!("{}", get_last_git_commit().unwrap_or("".to_string()))).expect("failed to send slack message");
                 }
 
-                _= slack_client.send_message(&format!("*Diawi install link*: {}\n*QR* {}", res.link, res.qr_code))
+                slack_client.send_message(&format!("*Diawi install link*: {}\n*QR* {}", res.link, res.qr_code)).expect("failed to send slack message");
             }
-            Err(_) => {
+            Err(e) => {
+                eprintln!("Error: could not ipa file to diawi: {}", e);
                 process::exit(1);
             }
         }
