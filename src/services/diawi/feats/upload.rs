@@ -1,6 +1,8 @@
 use reqwest::blocking::Client;
 use std::collections::HashMap;
 use std::error::Error;
+use std::time::Duration;
+use std::thread::sleep;
 
 pub struct UploadResponse{
     pub(crate) link: String,
@@ -14,20 +16,37 @@ pub fn upload(token : &String, file_path : &String) -> Result<UploadResponse, Bo
     form.insert("token", token);
     form.insert("file", file_path);
 
-    let response = client.post("https://upload.diawi.com")
+    let upload_response = client.post("https://upload.diawi.com")
         .form(&form)
         .send()?;
 
-    let body : serde_json::Value = response.json()?;
+    let upload_body : serde_json::Value = upload_response.json()?;
+    let job_id = upload_body["job"].as_str().expect("could not get job id from diawi upload API response");
+   
+    let mut pools = 0_i32;
+    while pools < 150 {
+        pools += 1;
 
-    if body["status"].as_i64().unwrap_or(0) == 2000 {
-        Ok(
-            UploadResponse{
-                link : body["link"].as_str().expect("failed to get download link").to_string(),
-                qr_code: body["qrcode"].as_str().expect("failed to get qr code").to_string()
-            }
-        )
-    }else{
-        Err(format!("error while uploading to diawi: {}", body["message"].as_str().unwrap_or("un-expected error")).into())
+        let status_response = client.get(format!("https://upload.diawi.com/status?toknen={}&job={}", token, job_id)).send()?;
+        let status_body : serde_json::Value = status_response.json()?;
+
+        let status = status_body["status"].as_i64().expect("failed to get status form diawi status API response");
+
+        if status == 2001{
+            sleep(Duration::from_secs(5));
+        }
+
+        else if  status == 2000 {
+            return  Ok(
+                UploadResponse{
+                    link : status_body["link"].as_str().expect("failed to get download link").to_string(),
+                    qr_code: status_body["qrcode"].as_str().expect("failed to get qr code").to_string()
+                }
+            );
+        }else{
+            return Err(format!("error while uploading to diawi: {}", status_body["message"].as_str().unwrap_or("un-expected error")).into());
+        }
     }
+
+    return Err("diawi upload timed out".into());
 }
