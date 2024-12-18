@@ -21,6 +21,7 @@ pub fn upload(token : &String, file_path : &String) -> Result<UploadResponse, Bo
         .send()?;
 
     let upload_body : serde_json::Value = upload_response.json()?;
+    println!("diawi upload response: {}", upload_body);
     let job_id = upload_body["job"].as_str().expect("could not get job id from diawi upload API response");
 
     println!("created upload job: {}", job_id);
