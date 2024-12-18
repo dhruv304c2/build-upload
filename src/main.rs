@@ -133,7 +133,7 @@ fn main() {
     if extension(&fp_ur).expect("failed to get file extension") == "ipa" {
         match upload::upload(&diawi_token.expect(
             "missing diawi token, diawi token is required IOS builds, set using -d or DIAWI_TOKEN"),
-            &file){
+            &fp_ur){
             Ok(res) => {
                 slack_client.send_message(&format!("{}", msg_ur)).expect("failed to send slack message");
 
