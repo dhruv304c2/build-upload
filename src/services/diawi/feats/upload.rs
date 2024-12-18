@@ -22,20 +22,25 @@ pub fn upload(token : &String, file_path : &String) -> Result<UploadResponse, Bo
 
     let upload_body : serde_json::Value = upload_response.json()?;
     let job_id = upload_body["job"].as_str().expect("could not get job id from diawi upload API response");
-   
+
+    println!("created upload job: {}", job_id);
+
     let mut pools = 0_i32;
+    let pool_wait_time = 5;
+
     while pools < 150 {
         pools += 1;
 
-        let status_response = client.get(format!("https://upload.diawi.com/status?toknen={}&job={}", token, job_id)).send()?;
+        let status_response = client.get(format!("https://upload.diawi.com/status?token={}&job={}", token, job_id)).send()?;
         let status_body : serde_json::Value = status_response.json()?;
 
         let status = status_body["status"].as_i64().expect("failed to get status form diawi status API response");
 
         if status == 2001{
-            sleep(Duration::from_secs(5));
+            println!("diawi upload not complete, trying agian after {} seconds", pool_wait_time);
+            sleep(Duration::from_secs(pool_wait_time));
+            continue;
         }
-
         else if  status == 2000 {
             return  Ok(
                 UploadResponse{

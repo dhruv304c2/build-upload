@@ -144,7 +144,7 @@ fn main() {
                 slack_client.send_message(&format!("*Diawi install link*: {}\n*QR* {}", res.link, res.qr_code)).expect("failed to send slack message");
             }
             Err(e) => {
-                eprintln!("Error: could not ipa file to diawi: {}", e);
+                eprintln!("Error: could upload not ipa file to diawi: {}", e);
                 process::exit(1);
             }
         }
